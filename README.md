@@ -1,4 +1,4 @@
-# Text-summarization-of-user-reviews-with-sentiment-analysis
+# Text-summarization-of-user-reviews-with-sentiment-analysis <br />
 
-Dataset used is amazon-fine-food-reviews from kaggle
-You can find it here https://www.kaggle.com/snap/amazon-fine-food-reviews/data
+Dataset used is amazon-fine-food-reviews from kaggle <br />
+You can find it here https://www.kaggle.com/snap/amazon-fine-food-reviews/data <br />
