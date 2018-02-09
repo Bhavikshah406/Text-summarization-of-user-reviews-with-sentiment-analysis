@@ -1,7 +1,7 @@
 import sqlite3
 import pandas as pd
 import numpy as np
-import nltk
+import nltk,re
 import string
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -10,13 +10,12 @@ from sklearn import linear_model
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 from sklearn import metrics
-from sklearn.metrics import roc_curve, auc
+from sklearn.metrics import roc_curve, auc ,roc_auc_score
 from nltk.stem.porter import PorterStemmer
 import csv,sys
 import glob, os
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-import re
 import string
 import nltk
 from sklearn.naive_bayes import BernoulliNB
@@ -30,7 +29,7 @@ from sklearn import svm
 
 
 con = sqlite3.connect('database.sqlite')
-prediction = dict()
+
 messages = pd.read_sql_query("""
 SELECT 
   Score, 
@@ -77,24 +76,18 @@ X_test_tfidf = tfidf_transformer.transform(X_new_counts)
 y_train = train["Sentiment"]
 y_test = test["Sentiment"]
 RAN_STATE = 42
-prediction = dict()
+prediction_for_test = dict()
+prediction_for_train = dict()
 
-from sklearn.metrics import roc_auc_score, roc_curve
+
 
 def train_classifier(clf, X_train, y_train):
     start = time()
     clf.fit(X_train, y_train)
     end = time()
-    
-   
     print ("Trained model in {:.4f} seconds".format(end - start))
 
     
-def predict_labels(clf, features, target):
-    start = time()
-    clf.predict(features)
-    end = time()
-    print ("Made predictions in {:.4f} seconds.".format(end - start))
 
 
 def train_predict(clf, X_train, y_train, X_test, y_test):
@@ -111,7 +104,7 @@ clf3=RandomForestClassifier(random_state = RAN_STATE)
 clf4=LogisticRegression(C=1e5)
 clf5= DecisionTreeClassifier(random_state=20160121, criterion='entropy')
 clf6=clf=svm.SVC(kernel="linear")
-clf_list = [clf1,clf2,clf4]
+clf_list = [clf1,clf4]
 
 
 
@@ -125,7 +118,8 @@ for clf in clf_list:
         train_predict(clf, a, b, X_test_tfidf, y_test)
 	
 for clf in clf_list:
-	prediction[clf.__class__.__name__] = clf.predict(X_test_tfidf)
+	prediction_for_test[clf.__class__.__name__] = clf.predict(X_test_tfidf)
+	prediction_for_train[clf.__class__.__name__] = clf.predict(X_train_tfidf)
 
 '''
 for clf in clf_list:
@@ -139,29 +133,36 @@ def formatt(x):
 vfunc = np.vectorize(formatt)
 
 cmp = 0
-best_model=''
+best_model=0
 best_auc=0
 colors = ['k', 'm', 'y', 'b', 'g', 'k']
 cnt=0
-for model, predicted in prediction.items():
-	false_positive_rate, true_positive_rate, thresholds = roc_curve(y_test.map(formatt), vfunc(predicted))
-	roc_auc = auc(false_positive_rate, true_positive_rate)
-	if roc_auc > best_auc:
-		best_model=cnt
-	plt.plot(false_positive_rate, true_positive_rate, colors[cmp], label='%s: AUC %0.2f'% (model,roc_auc))
-	cmp += 1
-	cnt += 1
+def roc(whatx,whaty,what):
+	global cmp
+	global  cnt
+	for model, predicted in whatx.items():
+		false_positive_rate, true_positive_rate, thresholds = roc_curve(whaty.map(formatt), vfunc(predicted))
+		roc_auc = auc(false_positive_rate, true_positive_rate)
+		if roc_auc > best_auc:
+			best_model=cnt
+		plt.plot(false_positive_rate, true_positive_rate, colors[cmp], label='%s: AUC %0.2f'% (model,roc_auc))
+		cmp += 1
+		cnt += 1
+	cnt=0
+	cmp=0
 
-plt.title('Classifiers comparaison with ROC')
-plt.legend(loc='lower right')
-plt.plot([0,1],[0,1],'r--')
-plt.xlim([-0.1,1.3])
-plt.ylim([-0.1,1.3])
-plt.ylabel('True Positive Rate')
-plt.xlabel('False Positive Rate')
-plt.show()
- 
-#print(clf_list[best_model])
+	plt.title('Classifiers comparaison with ROC for '+what)
+	plt.legend(loc='lower right')
+	plt.plot([0,1],[0,1],'r--')
+	plt.xlim([-0.1,1.3])
+	plt.ylim([-0.1,1.3])
+	plt.ylabel('True Positive Rate')
+	plt.xlabel('False Positive Rate')
+	plt.show()
+	 
+roc(prediction_for_train,y_train,"train dataset")
+roc(prediction_for_test,y_test,"test dataset")
+
 
 
 pos=[]
@@ -178,9 +179,8 @@ def test_sample(model, sample):
 		pos.append(sample)
     
 
-#What should the input be??? Again the dataset? What data are we segregating??
-#Now its just 3 setences.
-test_sample(clf_list[best_model], "The food was delicious, it smelled great and the taste was awesome")
+
+test_sample(clf_list[best_model], "The food was very tasty")
 test_sample(clf_list[best_model], "The whole experience was horrible. The smell was so bad that it literally made me sick.")
 test_sample(clf_list[best_model], "The food was bad.")
 
