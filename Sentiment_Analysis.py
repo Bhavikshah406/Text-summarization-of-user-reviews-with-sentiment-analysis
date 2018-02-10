@@ -78,19 +78,33 @@ y_test = test["Sentiment"]
 RAN_STATE = 42
 prediction_for_test = dict()
 prediction_for_train = dict()
+prediction_for_train_10 = dict()
+prediction_for_train_20 = dict()
 
-
+count1=1
 
 def train_classifier(clf, X_train, y_train):
-    start = time()
-    clf.fit(X_train, y_train)
-    end = time()
-    print ("Trained model in {:.4f} seconds".format(end - start))
-
+	global count1
+	start=time()
+	clf.fit(X_train, y_train)
+	end=time()
+	print("Trained model in {:.4f} seconds".format(end - start))
+	
+	if count1==1:
+		prediction_for_train_10[clf.__class__.__name__] = clf.predict(X_test_tfidf)
+		count1=count1+1
+	if count1==2:
+		prediction_for_train_20[clf.__class__.__name__] = clf.predict(X_test_tfidf)
+		count1=count1+1
+	else:
+		prediction_for_test[clf.__class__.__name__] = clf.predict(X_test_tfidf)
+		prediction_for_train[clf.__class__.__name__] = clf.predict(X_train_tfidf)
+		count1=1
+	
     
 
 
-def train_predict(clf, X_train, y_train, X_test, y_test):
+def train_wrap(clf, X_train, y_train, X_test, y_test):
 	print ("Training a {} using a training set size of {}. . .".format(clf.__class__.__name__, X_train.shape[0]))
 	train_classifier(clf, X_train, y_train)
    
@@ -108,23 +122,15 @@ clf_list = [clf1,clf4]
 
 
 
-train_feature_list = [X_train_tfidf[0:10000],X_train_tfidf[0:20000],X_train_tfidf]
-train_target_list = [y_train[0:10000], y_train[0:20000], y_train]
+train_feature_list = [X_train_tfidf[0:100000],X_train_tfidf[0:200000],X_train_tfidf]
+train_target_list = [y_train[0:100000], y_train[0:200000], y_train]
 
 
 
 for clf in clf_list:
     for a, b in zip(train_feature_list, train_target_list):
-        train_predict(clf, a, b, X_test_tfidf, y_test)
-	
-for clf in clf_list:
-	prediction_for_test[clf.__class__.__name__] = clf.predict(X_test_tfidf)
-	prediction_for_train[clf.__class__.__name__] = clf.predict(X_train_tfidf)
+        train_wrap(clf, a, b, X_test_tfidf, y_test)
 
-'''
-for clf in clf_list:
-    train_predict(clf, X_train_tfidf, y_train, X_test_tfidf, y_test)
-'''
 
 def formatt(x):
     if x == 'negative':
@@ -145,6 +151,7 @@ def roc(whatx,whaty,what):
 		roc_auc = auc(false_positive_rate, true_positive_rate)
 		if roc_auc > best_auc:
 			best_model=cnt
+		#print(what, roc_auc)
 		plt.plot(false_positive_rate, true_positive_rate, colors[cmp], label='%s: AUC %0.2f'% (model,roc_auc))
 		cmp += 1
 		cnt += 1
@@ -159,7 +166,10 @@ def roc(whatx,whaty,what):
 	plt.ylabel('True Positive Rate')
 	plt.xlabel('False Positive Rate')
 	plt.show()
-	 
+
+
+roc(prediction_for_train_10,y_test,"test prediction training of for 100000")
+roc(prediction_for_train_20,y_test,"test prediction training of for 200000")	
 roc(prediction_for_train,y_train,"train dataset")
 roc(prediction_for_test,y_test,"test dataset")
 
