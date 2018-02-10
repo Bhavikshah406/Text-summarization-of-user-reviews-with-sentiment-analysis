@@ -118,7 +118,7 @@ clf3=RandomForestClassifier(random_state = RAN_STATE)
 clf4=LogisticRegression(C=1e5)
 clf5= DecisionTreeClassifier(random_state=20160121, criterion='entropy')
 clf6=clf=svm.SVC(kernel="linear")
-clf_list = [clf1,clf4]
+clf_list = [clf1,clf2,clf4]
 
 
 
