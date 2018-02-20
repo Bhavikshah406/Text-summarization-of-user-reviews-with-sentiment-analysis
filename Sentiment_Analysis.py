@@ -25,10 +25,17 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn import svm
+import seaborn as sns
 
+data = pd.read_csv("./../../amazon-fine-food-reviews/Reviews.csv")
+ax = plt.axes()
+sns.countplot(data.Score,ax=ax)
+ax.set_title('Score Distribution')
+print(plt.show())
+print("Average Score: ",np.mean(data.Score))
+print("Median Score: ",np.median(data.Score))
 
-
-con = sqlite3.connect('database.sqlite')
+con = sqlite3.connect('./../../amazon-fine-food-reviews/database.sqlite')
 
 messages = pd.read_sql_query("""
 SELECT 
@@ -83,6 +90,38 @@ prediction_for_train_20 = dict()
 
 count1=1
 
+from wordcloud import WordCloud, STOPWORDS
+stopwords = set(STOPWORDS)
+
+#mpl.rcParams['figure.figsize']=(8.0,6.0)    #(6.0,4.0)
+mpl.rcParams['font.size']=12                #10 
+mpl.rcParams['savefig.dpi']=100             #72 
+mpl.rcParams['figure.subplot.bottom']=.1 
+
+
+def show_wordcloud(data, title = None):
+    wordcloud = WordCloud(
+        background_color='white',
+        stopwords=stopwords,
+        max_words=200,
+        max_font_size=40, 
+        scale=3,
+        random_state=1 # chosen at random by flipping a coin; it was heads
+    ).generate(str(data))
+    
+    fig = plt.figure(1, figsize=(8, 8))
+    plt.axis('off')
+    if title: 
+        fig.suptitle(title, fontsize=20)
+        fig.subplots_adjust(top=2.3)
+
+    plt.imshow(wordcloud)
+    plt.show()
+    
+show_wordcloud(messages["Summary_Clean"])
+show_wordcloud(messages[messages.Score == 1]["Summary_Clean"])
+show_wordcloud(messages[messages.Score == 5]["Summary_Clean"])
+
 def train_classifier(clf, X_train, y_train):
 	global count1
 	start=time()
@@ -122,8 +161,8 @@ clf_list = [clf1,clf2,clf4]
 
 
 
-train_feature_list = [X_train_tfidf[0:100000],X_train_tfidf[0:200000],X_train_tfidf]
-train_target_list = [y_train[0:100000], y_train[0:200000], y_train]
+train_feature_list = [X_train_tfidf[0:10000],X_train_tfidf[0:20000],X_train_tfidf]
+train_target_list = [y_train[0:10000], y_train[0:20000], y_train]
 
 
 
@@ -143,20 +182,27 @@ best_model=0
 best_auc=0
 colors = ['k', 'm', 'y', 'b', 'g', 'k']
 cnt=0
+num=0
 def roc(whatx,whaty,what):
 	global cmp
 	global  cnt
+	global num
+	global best_auc
+	global best_model
+	num=num+1
 	for model, predicted in whatx.items():
 		false_positive_rate, true_positive_rate, thresholds = roc_curve(whaty.map(formatt), vfunc(predicted))
 		roc_auc = auc(false_positive_rate, true_positive_rate)
-		if roc_auc > best_auc:
-			best_model=cnt
+		if num==4:
+			if roc_auc > best_auc:
+				best_model=cnt
+				print(what)
 		#print(what, roc_auc)
 		plt.plot(false_positive_rate, true_positive_rate, colors[cmp], label='%s: AUC %0.2f'% (model,roc_auc))
 		cmp += 1
 		cnt += 1
-	cnt=0
 	cmp=0
+	cnt=0
 
 	plt.title('Classifiers comparaison with ROC for '+what)
 	plt.legend(loc='lower right')
@@ -173,7 +219,7 @@ roc(prediction_for_train_20,y_test,"test prediction training of for 200000")
 roc(prediction_for_train,y_train,"train dataset")
 roc(prediction_for_test,y_test,"test dataset")
 
-
+print(best_model)
 
 pos=[]
 neg=[]
@@ -189,7 +235,7 @@ def test_sample(model, sample):
 		pos.append(sample)
     
 
-
+print(clf_list[best_model])
 test_sample(clf_list[best_model], "The food was very tasty")
 test_sample(clf_list[best_model], "The whole experience was horrible. The smell was so bad that it literally made me sick.")
 test_sample(clf_list[best_model], "The food was bad.")
