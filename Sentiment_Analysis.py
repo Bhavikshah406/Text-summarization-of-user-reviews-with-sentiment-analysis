@@ -27,7 +27,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn import svm
 import seaborn as sns
 
-data = pd.read_csv("./../../amazon-fine-food-reviews/Reviews.csv")
+data = pd.read_csv("Reviews.csv")
 ax = plt.axes()
 sns.countplot(data.Score,ax=ax)
 ax.set_title('Score Distribution')
@@ -35,7 +35,7 @@ print(plt.show())
 print("Average Score: ",np.mean(data.Score))
 print("Median Score: ",np.median(data.Score))
 
-con = sqlite3.connect('./../../amazon-fine-food-reviews/database.sqlite')
+con = sqlite3.connect('database.sqlite')
 
 messages = pd.read_sql_query("""
 SELECT 
